@@ -6,7 +6,7 @@ import AddAppointments from "./AddAppointments";
 import SearchAppointments from "./SearchAppointments";
 import ListAppointments from "./ListAppointments";
 
-import { without } from "lodash";
+import { findIndex, without } from "lodash";
 
 class App extends React.Component {
   state = {
@@ -14,6 +14,9 @@ class App extends React.Component {
     myAppointments: [],
     formDisplay: false,
     lastIndex: 0,
+    orderBy: "petName",
+    orderDir: "asc",
+    queryText: "",
   };
 
   deleteAppointment = (apt) => {
@@ -22,9 +25,20 @@ class App extends React.Component {
     this.setState({ myAppointments: temApts });
   };
 
+  updateInfo = (name, value, id) => {
+    let tempApts = this.state.myAppointments;
+    let aptIndex = findIndex(this.state.myAppointments, {
+      aptId: id
+    });
+    tempApts[aptIndex][name] = value;
+    this.setState({
+      myAppointments: tempApts
+    });
+  }
+
   toggleForm = () => {
     this.setState({
-      formDisplay: !this.state.formDisplay
+      formDisplay: !this.state.formDisplay,
     });
   };
 
@@ -34,8 +48,19 @@ class App extends React.Component {
     tempApts.unshift(apt); // push at the beginning using unshift
     this.setState({
       myAppointments: tempApts,
-      lastIndex: this.state.lastIndex + 1
-    })
+      lastIndex: this.state.lastIndex + 1,
+    });
+  };
+
+  searchApts = (query) => {
+    this.setState({ queryText: query });
+  }
+
+  changeOrder = (order, dir) => {
+    this.setState({
+      orderBy: order,
+      orderDir: dir,
+    });
   }
 
   componentDidMount() {
@@ -53,6 +78,39 @@ class App extends React.Component {
       });
   }
   render() {
+
+    let order;
+    let filteredApts = this.state.myAppointments;
+    if (this.state.orderDir === "asc") {
+      order = 1;
+    } else {
+      order = -1;
+    }
+
+    filteredApts
+      .sort((a, b) => {
+        if (
+          a[this.state.orderBy].toLowerCase() <
+          b[this.state.orderBy].toLowerCase()
+        ) {
+          return -1 * order;
+        } else {
+          return 1 * order;
+        }
+      })
+      .filter((eachItem) => {
+        return (
+          eachItem["petName"]
+            .toLowerCase()
+            .includes(this.state.queryText.toLowerCase()) ||
+          eachItem["ownerName"]
+            .toLowerCase()
+            .includes(this.state.queryText.toLowerCase()) ||
+          eachItem["aptNotes"]
+            .toLowerCase()
+            .includes(this.state.queryText.toLowerCase())
+        );
+      });
     return (
       <main className="page bg-white" id="petratings">
         <div className="container">
@@ -64,10 +122,16 @@ class App extends React.Component {
                   toggleForm={this.toggleForm}
                   addAppointment={this.addAppointment}
                 />
-                <SearchAppointments />
+                <SearchAppointments
+                  orderBy={this.state.orderBy}
+                  orderDir={this.state.orderDir}
+                  changeOrder={this.changeOrder}
+                  searchApts={this.searchApts}
+                />
                 <ListAppointments
                   appointments={this.state.myAppointments}
                   deleteAppointment={this.deleteAppointment}
+                  updateInfo={this.updateInfo}
                 />
               </div>
             </div>
